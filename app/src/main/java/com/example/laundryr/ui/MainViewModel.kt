@@ -21,6 +21,8 @@ data class MainUiState(
     val orders: List<OrderDto> = emptyList(),
     val selectedInvoice: OrderDto? = null,
     val message: String? = null,
+    val orderCreatedVersion: Int = 0,
+    val registerSuccessVersion: Int = 0,
 )
 
 class MainViewModel(
@@ -73,9 +75,11 @@ class MainViewModel(
             runCatching {
                 repository.register(RegisterRequest(name, email, phone, address, password))
             }.onSuccess {
-                sessionManager.saveToken(it.token)
-                state.value = state.value.copy(loading = false, user = it.user, message = "Registrasi berhasil")
-                loadOrders()
+                state.value = state.value.copy(
+                    loading = false,
+                    message = "Registrasi berhasil, silakan login",
+                    registerSuccessVersion = state.value.registerSuccessVersion + 1,
+                )
             }.onFailure {
                 state.value = state.value.copy(loading = false, message = it.message ?: "Registrasi gagal")
             }
@@ -129,7 +133,11 @@ class MainViewModel(
             )
             runCatching { repository.createOrder(payload) }
                 .onSuccess {
-                    state.value = state.value.copy(loading = false, message = "Order berhasil dibuat")
+                    state.value = state.value.copy(
+                        loading = false,
+                        message = "Order berhasil dibuat",
+                        orderCreatedVersion = state.value.orderCreatedVersion + 1,
+                    )
                     loadOrders()
                 }
                 .onFailure {
